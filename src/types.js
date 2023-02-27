@@ -56,6 +56,12 @@ module.exports = {
     label: 'complete',
     logLevel: 'info'
   },
+  ready: {
+    badge: figures.tick,
+    color: 'green',
+    label: 'ready',
+    logLevel: 'info'
+  },
   pending: {
     badge: figures.checkboxOff,
     color: 'magenta',
@@ -66,6 +72,18 @@ module.exports = {
     badge: figures.bullet,
     color: 'blue',
     label: 'note',
+    logLevel: 'info'
+  },
+  event: {
+    badge: figures('🎫'),
+    color: 'cyan',
+    label: 'event',
+    logLevel: 'info'
+  },
+  command: {
+    badge: figures('⌨️'),
+    color: 'cyan',
+    label: 'command',
     logLevel: 'info'
   },
   start: {

@@ -9,9 +9,11 @@ import { Writable as WritableStream } from 'stream';
 declare namespace _signale {
   export type DefaultLogger =
     | 'await'
+    | 'command'
     | 'complete'
     | 'debug'
     | 'error'
+    | 'event'
     | 'fatal'
     | 'fav'
     | 'info'
@@ -19,6 +21,7 @@ declare namespace _signale {
     | 'note'
     | 'pause'
     | 'pending'
+    | 'ready'
     | 'star'
     | 'start'
     | 'success'
