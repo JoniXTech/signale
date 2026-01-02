@@ -56,12 +56,23 @@ class Signale {
 
   get date() {
     const _ = new Date();
-    return [_.getFullYear(), _.getMonth() + 1, _.getDate()].join('-');
+    return [_.getFullYear(), String(_.getMonth() + 1).padStart(2, '0'), String(_.getDate()).padStart(2, '0')].join('-');
   }
 
   get timestamp() {
     const _ = new Date();
-    return [_.getHours(), _.getMinutes(), _.getSeconds()].join(':');
+
+    const time = [_.getHours(), _.getMinutes(), _.getSeconds()].map(x => String(x).padStart(2, '0')).join(':');
+
+    const offsetMinutes = -_.getTimezoneOffset();
+    if (offsetMinutes === 0) return `${time} UTC`;
+
+    const sign = offsetMinutes >= 0 ? '+' : '-';
+    const absMinutes = Math.abs(offsetMinutes);
+    const offsetHours = Math.floor(absMinutes / 60);
+    const offsetMins = absMinutes % 60;
+
+    return `${time} UTC${sign}${offsetHours}${offsetMins === 0 ? '' : ':' + String(offsetMins).padStart(2, '0')}`;
   }
 
   get filename() {
@@ -76,7 +87,9 @@ class Signale {
       return x !== callers[0];
     });
 
-    return firstExternalFilePath ? path.basename(firstExternalFilePath) : 'anonymous';
+    if (!firstExternalFilePath) return 'anonymous';
+
+    return path.relative(process.cwd(), firstExternalFilePath);
   }
 
   get packageConfiguration() {
@@ -153,8 +166,38 @@ class Signale {
     return `[${this.date}]`;
   }
 
+  _smartShortenFilepath(filepath, targetLength) {
+    // const ext = path.extname(filepath);
+    // if (ext === '.js' || ext === '.ts') {
+    //   filepath = filepath.slice(0, -ext.length);
+    // }
+
+    if (filepath.length <= targetLength) {
+      return filepath;
+    }
+
+    const parts = filepath.split(path.sep);
+    if (parts.length < 2) {
+      return filepath;
+    }
+
+    const filename = parts.pop();
+    for (let i = 0; i < parts.length; i++) {
+      if (parts[i] !== '.' && parts[i] !== '..') {
+        parts[i] = parts[i][0];
+      }
+      const candidate = [...parts, filename].join(path.sep);
+      if (candidate.length <= targetLength) {
+        return candidate;
+      }
+    }
+
+    return [...parts, filename].join(path.sep);
+  }
+
   _formatFilename() {
-    return `[${this.filename}]`;
+    const targetLength = 20;
+    return `[${this._padStart(this._smartShortenFilepath(this.filename, targetLength), targetLength)}]`;
   }
 
   _formatScopeName() {
@@ -295,6 +338,22 @@ class Signale {
     const {stream, logLevel} = this._types[type];
     const message = this._buildSignale(this._types[type], ...messageObj);
     this._log(this._filterSecrets(message), stream, this._validateLogLevel(logLevel));
+  }
+
+  _padStart(str, targetLength) {
+    str = String(str);
+    targetLength = parseInt(targetLength, 10) || 0;
+
+    if (str.length >= targetLength) {
+      return str;
+    }
+
+    if (String.prototype.padStart) {
+      return str.padStart(targetLength);
+    }
+
+    targetLength -= str.length;
+    return ' '.repeat(targetLength) + str;
   }
 
   _padEnd(str, targetLength) {
