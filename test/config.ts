@@ -24,3 +24,28 @@ function scopedConfigTest() {
 }
 
 scopedConfigTest();
+
+function fullConfigTest() {
+  // Overrides both `signale` and `package.json` configs
+  signale.config({
+    displayScope: false,
+    displayBadge: true,
+    displayDate: true,
+    displayFilename: true,
+    displayLabel: true,
+    displayTimestamp: true,
+    underlineLabel: true,
+    underlineMessage: false,
+    underlinePrefix: false,
+    underlineSuffix: false,
+    uppercaseLabel: false
+  });
+
+  signale.success('Hello from the Full Config scope');
+  signale.info('This is an info message');
+  signale.debug('This is a debug message');
+  signale.warn('This is a warning message');
+  signale.error('This is an error message');
+}
+
+fullConfigTest();
