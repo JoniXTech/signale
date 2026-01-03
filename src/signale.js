@@ -75,21 +75,48 @@ class Signale {
     return `${time} UTC${sign}${offsetHours}${offsetMins === 0 ? '' : ':' + String(offsetMins).padStart(2, '0')}`;
   }
 
+  _getProjectRoot() {
+    if (require.main && require.main.filename) {
+      return path.dirname(require.main.filename);
+    }
+
+    return process.cwd();
+  }
+
+  _relativeIfInside(fromDir, filePath) {
+    const rel = path.relative(fromDir, filePath);
+
+    if (!rel || rel === '.') return path.basename(filePath);
+    if (rel.startsWith('..' + path.sep) || rel === '..' || path.isAbsolute(rel)) return null;
+
+    return rel;
+  }
+
   get filename() {
     const _ = Error.prepareStackTrace;
     Error.prepareStackTrace = (error, stack) => stack;
     const {stack} = new Error();
     Error.prepareStackTrace = _;
 
-    const callers = stack.map(x => x.getFileName());
+    const callers = stack.map(x => x.getFileName()).filter(Boolean);
 
     const firstExternalFilePath = callers.find(x => {
-      return x !== callers[0];
+      return x !== callers[0] && !x.startsWith('node:') && !x.includes(`${path.sep}internal${path.sep}`);
     });
 
     if (!firstExternalFilePath) return 'anonymous';
 
-    return path.relative(process.cwd(), firstExternalFilePath);
+    const projectRoot = this._getProjectRoot();
+
+    const relFromProject = this._relativeIfInside(projectRoot, firstExternalFilePath);
+    if (relFromProject) return relFromProject;
+
+    if (require.main && require.main.filename) {
+      const relFromMain = this._relativeIfInside(path.dirname(require.main.filename), firstExternalFilePath);
+      if (relFromMain) return relFromMain;
+    }
+
+    return path.basename(firstExternalFilePath);
   }
 
   get packageConfiguration() {
@@ -197,7 +224,7 @@ class Signale {
 
   _formatFilename() {
     const targetLength = 20;
-    return `[${this._padStart(this._smartShortenFilepath(this.filename, targetLength), targetLength)}]`;
+    return `[${this._padBoth(this._smartShortenFilepath(this.filename, targetLength), targetLength)}]`;
   }
 
   _formatScopeName() {
@@ -372,6 +399,21 @@ class Signale {
     return str + ' '.repeat(targetLength);
   }
 
+  _padBoth(str, targetLength) {
+    str = String(str);
+    targetLength = parseInt(targetLength, 10) || 0;
+
+    if (str.length >= targetLength) {
+      return str;
+    }
+
+    const totalPadding = targetLength - str.length;
+    const startPadding = Math.floor(totalPadding / 2);
+    const endPadding = totalPadding - startPadding;
+
+    return ' '.repeat(startPadding) + str + ' '.repeat(endPadding);
+  }
+
   addSecrets(secrets) {
     if (!Array.isArray(secrets)) {
       throw new TypeError('Argument must be an array.');
@@ -386,6 +428,7 @@ class Signale {
 
   config(configObj) {
     this.configuration = configObj;
+    return this;
   }
 
   disable() {
